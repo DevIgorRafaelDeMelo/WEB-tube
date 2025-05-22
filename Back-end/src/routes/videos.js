@@ -2,6 +2,7 @@ const express = require("express");
 const multer = require("multer");
 const router = express.Router();
 const path = require("path");
+const pool = require("../config/db");
 
 // Configuração multer para armazenar arquivos localmente em 'uploads/'
 const storage = multer.diskStorage({
@@ -17,6 +18,35 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage });
 
+async function salvarVideoNoBanco({
+  title,
+  description,
+  rating,
+  categories,
+  videoPath,
+}) {
+  const categoriesJSON = JSON.stringify(categories);
+
+  const sql = `
+    INSERT INTO videos (title, description, url, rating, categories)
+    VALUES (?, ?, ?, ?, ?)
+  `;
+
+  try {
+    const [result] = await pool.execute(sql, [
+      title,
+      description,
+      videoPath,
+      rating || 0,
+      categoriesJSON,
+    ]);
+    return result.insertId;
+  } catch (error) {
+    console.error("Erro na query de insert:", error);
+    throw error;
+  }
+}
+
 // Rota que recebe dois arquivos: 'url' (vídeo) e 'image_url' (imagem)
 router.post(
   "/",
@@ -24,33 +54,28 @@ router.post(
     { name: "url", maxCount: 1 },
     { name: "image_url", maxCount: 1 },
   ]),
-  (req, res) => {
+  async (req, res) => {
     try {
-      const { title, description, rating } = req.body;
-      const categories = req.body["categories[]"] || []; // Pode vir como array ou string
+      console.log("Arquivos recebidos:", req.files);
 
-      // Se veio uma única categoria como string, transforma em array
-      const categoriesArray = Array.isArray(categories)
-        ? categories
-        : [categories];
+      const { title, description, rating } = req.body;
+      let categories = req.body["categories[]"] || [];
+
+      if (!Array.isArray(categories)) categories = [categories];
 
       const videoFile = req.files.url ? req.files.url[0] : null;
-      const imageFile = req.files.image_url ? req.files.image_url[0] : null;
 
-      // Aqui você salva os dados no banco, por exemplo
-      // videoFile.path tem o caminho do arquivo salvo no servidor
+      const videoId = await salvarVideoNoBanco({
+        title,
+        description,
+        rating,
+        categories,
+        videoPath: videoFile ? videoFile.path : null,
+      });
 
-      // Apenas exemplo de resposta
       res.status(201).json({
         message: "Vídeo cadastrado com sucesso",
-        data: {
-          title,
-          description,
-          rating,
-          categories: categoriesArray,
-          videoPath: videoFile ? videoFile.path : null,
-          imagePath: imageFile ? imageFile.path : null,
-        },
+        videoId,
       });
     } catch (err) {
       console.error("Erro ao cadastrar vídeo:", err);
