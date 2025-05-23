@@ -24,12 +24,13 @@ async function salvarVideoNoBanco({
   rating,
   categories,
   videoPath,
+  imagePath, // novo parâmetro para imagem
 }) {
   const categoriesJSON = JSON.stringify(categories);
 
   const sql = `
-    INSERT INTO videos (title, description, url, rating, categories)
-    VALUES (?, ?, ?, ?, ?)
+    INSERT INTO videos (title, description, url, url_img, rating, categories)
+    VALUES (?, ?, ?, ?, ?, ?)
   `;
 
   try {
@@ -37,6 +38,7 @@ async function salvarVideoNoBanco({
       title,
       description,
       videoPath,
+      imagePath, // passa aqui o caminho da imagem
       rating || 0,
       categoriesJSON,
     ]);
@@ -64,6 +66,7 @@ router.post(
       if (!Array.isArray(categories)) categories = [categories];
 
       const videoFile = req.files.url ? req.files.url[0] : null;
+      const imageFile = req.files.image_url ? req.files.image_url[0] : null;
 
       const videoId = await salvarVideoNoBanco({
         title,
@@ -71,6 +74,7 @@ router.post(
         rating,
         categories,
         videoPath: videoFile ? videoFile.path : null,
+        imagePath: imageFile ? imageFile.path : null, // passa caminho da imagem aqui
       });
 
       res.status(201).json({
