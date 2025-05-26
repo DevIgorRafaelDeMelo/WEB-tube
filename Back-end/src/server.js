@@ -1,12 +1,15 @@
 const express = require("express");
 const cors = require("cors");
 require("dotenv").config();
-const bodyParser = require("body-parser");
+const bodyParser = require("body-parser"); 
+
 
 // Rotas
 const videoRoutes = require("./routes/videos");
 const getVideosRoutes = require("./routes/getVideos");
 const updateLikesRoutes = require("./routes/updateLikes");
+const authRoutes = require("./routes/auth");
+
 
 const app = express();
 
@@ -19,6 +22,8 @@ app.use("/uploads", express.static("uploads")); // Servir arquivos
 app.use("/videos", videoRoutes);
 app.use("/getvideos", getVideosRoutes);
 app.use("/updateLikes", updateLikesRoutes);
+app.use("/auth", authRoutes);
+
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
